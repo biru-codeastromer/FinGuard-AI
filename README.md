@@ -49,5 +49,42 @@ Request lifecycle:
 - Type-safe DTO contracts and domain enums.
 - Event-driven asynchronous side effects for alerting and notifications.
 
+## REST API Overview
+Base path: `/api/v1`
+
+Core endpoint groups:
+- Authentication:
+  - `POST /auth/register`
+  - `POST /auth/login`
+  - `POST /auth/refresh`
+- Accounts and users:
+  - `GET /users/me`
+  - `POST /accounts`
+  - `GET /accounts/:accountId`
+- Transactions:
+  - `POST /transactions`
+  - `GET /transactions/:transactionId`
+  - `GET /accounts/:accountId/transactions`
+- Risk and alerts:
+  - `GET /risk/transactions/:transactionId`
+  - `GET /alerts`
+  - `PATCH /alerts/:alertId`
+
+## Validation and Error Contract
+All write endpoints use DTO validation and return a unified error shape:
+- `code`: machine-readable error identifier.
+- `message`: human-readable summary.
+- `details`: optional field-level validation diagnostics.
+- `correlationId`: trace key for debugging and audit.
+
+Primary HTTP status mapping:
+- `400`: validation failure.
+- `401`: authentication failure.
+- `403`: authorization failure.
+- `404`: resource not found.
+- `409`: conflict or duplicate request.
+- `422`: business rule rejection.
+- `500`: unexpected server error.
+
 ## Status
 Milestone-1 architecture and modeling documentation is complete in this repository.
