@@ -86,5 +86,28 @@ Primary HTTP status mapping:
 - `422`: business rule rejection.
 - `500`: unexpected server error.
 
+## Fraud and Risk Decision Pipeline
+Transaction decisioning runs through a hybrid pipeline:
+1. Request validation and account eligibility checks.
+2. Deterministic fraud rule evaluation.
+3. Behavioral feature extraction (velocity, geo, device patterns).
+4. AI-assisted anomaly probability scoring.
+5. Weighted risk score generation and decisioning (`APPROVE`, `HOLD`, `BLOCK`).
+6. Audit trail persistence and asynchronous alert event publishing.
+
+## Security and Compliance Controls
+- JWT access tokens with refresh token rotation.
+- RBAC for `Customer`, `RiskAnalyst`, and `Admin` roles.
+- Strong request validation at controller boundaries.
+- Idempotency keys for transaction endpoints.
+- Structured audit logs with correlation IDs.
+- Masked sensitive fields in logs and exports.
+
+## Observability and Reliability
+- Structured JSON logs for traceability.
+- Metrics for latency, fraud-hit rates, and queue lag.
+- Distributed tracing across service boundaries.
+- Retry and circuit-breaker patterns for dependent services.
+
 ## Status
 Milestone-1 architecture and modeling documentation is complete in this repository.
