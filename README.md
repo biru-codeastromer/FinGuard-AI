@@ -109,5 +109,40 @@ Transaction decisioning runs through a hybrid pipeline:
 - Distributed tracing across service boundaries.
 - Retry and circuit-breaker patterns for dependent services.
 
+## Local Development Setup
+Prerequisites:
+- Node.js 20+
+- PostgreSQL 14+
+- npm 10+
+
+Example environment variables:
+```bash
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/finguard
+JWT_ACCESS_SECRET=replace_with_secure_secret
+JWT_REFRESH_SECRET=replace_with_secure_secret
+PORT=3000
+```
+
+Recommended commands:
+```bash
+npm install
+npx prisma generate
+npx prisma migrate dev
+npm run start:dev
+```
+
+## Quality and Testing
+- Unit tests for services, domain logic, and strategy selection.
+- Integration tests for repository and database interactions.
+- End-to-end tests for auth and transaction decision flow.
+
+Suggested scripts:
+```bash
+npm run lint
+npm run test
+npm run test:cov
+npm run test:e2e
+```
+
 ## Status
 Milestone-1 architecture and modeling documentation is complete in this repository.
