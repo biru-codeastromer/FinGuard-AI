@@ -30,3 +30,16 @@ Use Conventional Commits:
 - API contract changes documented.
 - Security and validation impact reviewed.
 - No unrelated file changes included.
+
+## Definition of Done
+- DTO validation is implemented for all input boundaries.
+- Error handling uses the common response contract.
+- Role-based access checks are applied where required.
+- Logs include trace and correlation context.
+- Documentation is updated when behavior or API contracts change.
+
+## Code Review Focus
+- Correctness of transaction and risk decision logic.
+- Compliance with OOP principles and interface abstractions.
+- Proper repository usage and no direct database access in controllers.
+- Safe handling of authentication, authorization, and sensitive data.
