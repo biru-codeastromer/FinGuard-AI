@@ -28,6 +28,16 @@ Core capabilities:
 - `classDiagram.md`
 - `ErDiagram.md`
 
+## Repository Documentation Index
+- `README.md`: project overview, architecture summary, API and setup.
+- `CONTRIBUTING.md`: contribution process, review rules, and quality gates.
+- `OPERATIONS.md`: monitoring, incident response, and release rollback guidance.
+- `idea.md`: detailed architecture and design decisions.
+- `useCaseDiagram.md`: actors and use case model.
+- `sequenceDiagram.md`: end-to-end sequence flows.
+- `classDiagram.md`: TypeScript-oriented class and interface design.
+- `ErDiagram.md`: database schema and relationship model.
+
 ## System Architecture Overview
 FinGuard AI follows a modular NestJS backend architecture with clear boundaries:
 - `Auth Module`: JWT authentication, refresh token rotation, role checks.
