@@ -1,149 +1,165 @@
 # Sequence Diagrams - FinGuard AI
 
-## 1) End-to-End Transaction + Fraud + Risk + Alert Flow
+## 1) End-to-End Transaction Flow (NestJS + Prisma + Risk Pipeline)
 ```mermaid
 sequenceDiagram
     autonumber
     actor User as Customer
-    participant FE as Frontend App
+    participant FE as React Frontend
     participant API as API Gateway
-    participant Auth as AuthService
+    participant Guard as JwtAuthGuard
     participant TxC as TransactionController
+    participant Pipe as ValidationPipe
     participant TxS as TransactionService
-    participant Acct as AccountService
-    participant Fraud as FraudDetectionService
-    participant Behav as BehavioralAnalysisService
+    participant AcctS as AccountService
+    participant FraudS as FraudDetectionService
+    participant BehavS as BehavioralAnalysisService
     participant Rule as RuleEngine
-    participant AI as RiskModelAdapter
-    participant Risk as RiskScoringService
-    participant TxR as TransactionRepository
-    participant Outbox as EventOutbox
-    participant Alert as AlertService
-    participant Notify as NotificationService
-    participant Audit as AuditLogService
+    participant AiStr as HybridAiStrategy
+    participant RiskS as RiskScoringService
+    participant TxRepo as PrismaTransactionRepository
+    participant Prisma as PrismaClient
+    participant Outbox as EventOutboxPublisher
+    participant AlertS as AlertService
+    participant NotifS as NotificationService
+    participant AuditS as AuditService
+    participant Filter as GlobalExceptionFilter
 
-    User->>FE: Submit transaction request
+    User->>FE: Submit transaction form
     FE->>API: POST /api/v1/transactions (JWT, idempotency-key)
-    API->>Auth: Validate JWT and roles
+    API->>Guard: Validate JWT and roles
 
-    alt Authentication failed
-        Auth-->>API: invalid token / expired
-        API-->>FE: 401 Unauthorized + error code + correlationId
-        FE-->>User: Prompt re-login
-    else Authentication success
-        Auth-->>API: principal context
-        API->>TxC: forward validated request
-        TxC->>TxC: Validate schema + basic constraints
+    alt Unauthorized
+        Guard-->>API: AuthError
+        API->>Filter: handle exception
+        Filter-->>FE: 401 + code + correlationId
+        FE-->>User: Re-login required
+    else Authorized
+        Guard-->>API: principal context
+        API->>TxC: route request
+        TxC->>Pipe: validate CreateTransactionDto
 
-        alt Validation error
-            TxC-->>API: 400 ValidationError(details)
-            API-->>FE: 400 + field errors + correlationId
-        else Validation success
-            TxC->>TxS: createTransaction(command)
-            TxS->>Acct: verify account status, balance, velocity limits
+        alt DTO validation failed
+            Pipe-->>TxC: ValidationError
+            TxC->>Filter: throw BadRequestException
+            Filter-->>FE: 400 + field errors + correlationId
+        else DTO valid
+            TxC->>TxS: createTransaction(dto, principal)
+            TxS->>AcctS: verify account status and balance
 
             alt Business rule violation
-                Acct-->>TxS: insufficient funds / account frozen
-                TxS->>Audit: record rejected decision
-                TxS-->>TxC: 422 BusinessRuleViolation
-                TxC-->>API: 422 + reason code
-                API-->>FE: show actionable failure message
-            else Account checks pass
-                TxS->>Fraud: runDetection(transactionContext)
-                Fraud->>Rule: evaluate deterministic rules
-                Fraud->>Behav: compute behavior features
-                Behav-->>Fraud: feature vector
-                Fraud->>AI: infer anomaly probability
-                AI-->>Fraud: model score + confidence
-                Fraud-->>TxS: fraud signals + reason codes
+                AcctS-->>TxS: insufficient funds or account frozen
+                TxS->>AuditS: record rejected decision
+                TxS->>Filter: throw UnprocessableEntityException
+                Filter-->>FE: 422 + reason code
+            else Account checks passed
+                TxS->>FraudS: runDetection(transactionContext)
+                FraudS->>Rule: evaluate active rules
+                FraudS->>BehavS: extract behavior features
+                BehavS-->>FraudS: feature vector
+                FraudS->>AiStr: score(context, features)
+                AiStr-->>FraudS: probability + confidence
+                FraudS-->>TxS: fraud signals + reason codes
 
-                TxS->>Risk: calculateRiskScore(signals, context)
-                Risk-->>TxS: riskScore + decision(Approve/Hold/Block)
+                TxS->>RiskS: calculateRiskScore(signals, context)
+                RiskS-->>TxS: riskScore + decision
 
-                TxS->>TxR: persist transaction + risk snapshot
-                TxR-->>TxS: persisted(transactionId)
+                TxS->>TxRepo: save transaction aggregate
+                TxRepo->>Prisma: INSERT transaction + risk snapshot
+                Prisma-->>TxRepo: persisted record
+                TxRepo-->>TxS: transactionId
+
                 TxS->>Outbox: publish TransactionDecided event
-                TxS->>Audit: write decision trail + factors
-                TxS-->>TxC: success payload
-                TxC-->>API: 201 Created
-                API-->>FE: transaction status + risk metadata
-                FE-->>User: display status
+                TxS->>AuditS: write audit trail
+                TxS-->>TxC: TransactionResponseDto
+                TxC-->>FE: 201 Created + response DTO
 
-                par Async alerting
-                    Outbox->>Alert: consume TransactionDecided
-                    alt decision is Hold or Block
-                        Alert->>Notify: dispatch notification templates
-                        Notify-->>Alert: delivery status
-                    else decision is Approve
-                        Alert-->>Alert: no critical alert (optional info alert)
+                par Async side effects
+                    Outbox->>AlertS: consume TransactionDecided
+                    alt Hold or Block
+                        AlertS->>NotifS: send alert templates
+                        NotifS-->>AlertS: delivery status
+                    else Approve
+                        AlertS-->>AlertS: optional info event only
                     end
-                    Alert->>Audit: record alert lifecycle
+                    AlertS->>AuditS: log alert lifecycle
                 end
             end
         end
     end
 ```
 
-## 2) Authentication and Authorization Flow
+## 2) Authentication and Authorization Flow (JWT)
 ```mermaid
 sequenceDiagram
     autonumber
     actor U as User
-    participant FE as Frontend
-    participant API as API Gateway
-    participant Auth as AuthController
-    participant IdP as IdentityService
-    participant Token as TokenService
-    participant Sess as SessionRepository
+    participant FE as React Frontend
+    participant AuthC as AuthController
+    participant Pipe as ValidationPipe
+    participant AuthS as AuthService
+    participant UserRepo as PrismaUserRepository
+    participant TokenS as JwtTokenService
+    participant SessionRepo as PrismaSessionRepository
+    participant Filter as GlobalExceptionFilter
 
-    U->>FE: Login(email, password, otp?)
-    FE->>API: POST /api/v1/auth/login
-    API->>Auth: forward credentials
-    Auth->>IdP: verify credentials + MFA policy
+    U->>FE: Login(email, password)
+    FE->>AuthC: POST /api/v1/auth/login
+    AuthC->>Pipe: validate LoginDto
 
-    alt invalid credentials
-        IdP-->>Auth: authentication failed
-        Auth-->>API: 401 AUTH_INVALID_CREDENTIALS
-        API-->>FE: login failed
-    else valid credentials
-        IdP-->>Auth: authenticated user + roles
-        Auth->>Token: issue access + refresh tokens
-        Token->>Sess: store refresh token fingerprint
-        Sess-->>Token: stored
-        Token-->>Auth: token pair
-        Auth-->>API: 200 auth payload
-        API-->>FE: tokens + expiry
+    alt Invalid DTO
+        Pipe-->>AuthC: validation error
+        AuthC->>Filter: throw BadRequestException
+        Filter-->>FE: 400 validation response
+    else DTO valid
+        AuthC->>AuthS: login(dto)
+        AuthS->>UserRepo: findByEmail(email)
+
+        alt Invalid credentials
+            UserRepo-->>AuthS: user missing or password mismatch
+            AuthS->>Filter: throw UnauthorizedException
+            Filter-->>FE: 401 AUTH_INVALID_CREDENTIALS
+        else Authenticated
+            UserRepo-->>AuthS: user + role set
+            AuthS->>TokenS: issue access and refresh tokens
+            TokenS->>SessionRepo: persist refresh token fingerprint
+            SessionRepo-->>TokenS: stored
+            TokenS-->>AuthS: token pair
+            AuthS-->>AuthC: AuthResponseDto
+            AuthC-->>FE: 200 tokens + expiry
+        end
     end
 ```
 
-## 3) Error Handling and Recovery Flow (Service Failure)
+## 3) Error Handling and Recovery Flow
 ```mermaid
 sequenceDiagram
     autonumber
     actor U as User
-    participant FE as Frontend
-    participant API as API Gateway
+    participant FE as React Frontend
+    participant TxC as TransactionController
     participant TxS as TransactionService
-    participant Fraud as FraudDetectionService
+    participant FraudS as FraudDetectionService
     participant CB as CircuitBreaker
-    participant Audit as AuditLogService
+    participant AuditS as AuditService
+    participant Filter as GlobalExceptionFilter
 
     U->>FE: Submit transaction
-    FE->>API: POST /transactions
-    API->>TxS: createTransaction
-    TxS->>Fraud: runDetection
+    FE->>TxC: POST /api/v1/transactions
+    TxC->>TxS: createTransaction(dto)
+    TxS->>FraudS: runDetection(context)
 
     alt Fraud service timeout
-        Fraud--xTxS: timeout exception
+        FraudS--xTxS: timeout exception
         TxS->>CB: register failure
-        CB-->>TxS: OPEN (fallback mode)
-        TxS->>Audit: log dependency failure + degraded decision path
-        TxS-->>API: 503 SERVICE_UNAVAILABLE (retryable=true)
-        API-->>FE: 503 + retry-after + correlationId
-        FE-->>U: please retry shortly
-    else Fraud service recovered
-        Fraud-->>TxS: signals
-        TxS-->>API: normal response
-        API-->>FE: success
+        CB-->>TxS: OPEN fallback mode
+        TxS->>AuditS: log dependency outage and degraded path
+        TxS->>Filter: throw ServiceUnavailableException
+        Filter-->>FE: 503 + retryAfter + correlationId
+        FE-->>U: Please retry shortly
+    else Fraud service normal
+        FraudS-->>TxS: signals returned
+        TxS-->>TxC: success result
+        TxC-->>FE: 201 Created
     end
 ```

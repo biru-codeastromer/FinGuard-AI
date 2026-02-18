@@ -1,16 +1,16 @@
 # Class Diagram - FinGuard AI
 
-## Major Classes and Interfaces
-- API Layer: controllers and DTO mapping.
-- Application Layer: services, factories, strategies.
-- Domain Layer: entities, value objects, contracts.
-- Infrastructure Layer: repository implementations and provider adapters.
+## TypeScript-Oriented Design Notes
+- Domain entities and service contracts use strict TypeScript typing.
+- Repository and strategy behaviors are interface-driven.
+- DTO classes define request/response contracts at API boundaries.
+- NestJS dependency injection binds interfaces to Prisma-backed implementations.
 
 ## OOP Relationship Notes
-- **Inheritance**: controllers/entities extend base classes.
-- **Composition**: services compose repositories and strategy contracts.
-- **Aggregation**: `User` aggregates multiple `Account`s.
-- **Polymorphism**: strategy interfaces support multiple concrete algorithms.
+- Inheritance: entities inherit from `BaseEntity` and API helpers from `BaseController`.
+- Composition: services compose repositories, strategies, and domain services.
+- Aggregation: `User` aggregates multiple `Account` objects.
+- Polymorphism: risk strategies and notification channels are runtime-swappable.
 
 ## Mermaid Class Diagram
 ```mermaid
@@ -18,224 +18,233 @@ classDiagram
     direction LR
 
     class BaseEntity {
-      +UUID id
-      +DateTime createdAt
-      +DateTime updatedAt
+      +id: string
+      +createdAt: Date
+      +updatedAt: Date
     }
 
     class User {
-      +String email
-      +String phone
-      +UserStatus status
-      +register()
-      +lock()
+      +email: string
+      +phone: string
+      +status: UserStatus
+      +register(): void
+      +lock(): void
     }
 
     class Account {
-      +String accountNumber
-      +Decimal availableBalance
-      +AccountStatus status
-      +credit(amount)
-      +debit(amount)
-      +freeze()
+      +userId: string
+      +accountNumber: string
+      +availableBalance: number
+      +currency: Currency
+      +status: AccountStatus
+      +credit(amount: number): void
+      +debit(amount: number): void
+      +freeze(): void
     }
 
     class Transaction {
-      +UUID accountId
-      +Decimal amount
-      +String currency
-      +TransactionStatus status
-      +RiskDecision decision
-      +markApproved()
-      +markBlocked()
+      +accountId: string
+      +amount: number
+      +currency: Currency
+      +status: TransactionStatus
+      +decision: RiskDecision
+      +markApproved(): void
+      +markBlocked(): void
     }
 
-    class RiskProfile {
-      +UUID userId
-      +Int riskScore
-      +String riskLevel
-      +updateScore()
+    class RiskAssessment {
+      +transactionId: string
+      +riskScore: number
+      +riskLevel: RiskLevel
+      +reasonCodes: string[]
+      +modelConfidence: number
     }
 
     class Alert {
-      +UUID transactionId
-      +AlertSeverity severity
-      +AlertStatus status
-      +assign(analystId)
-      +resolve(note)
-    }
-
-    class AuditLog {
-      +String actorType
-      +UUID actorId
-      +String action
-      +String correlationId
-      +persist()
+      +transactionId: string
+      +severity: AlertSeverity
+      +status: AlertStatus
+      +assign(analystId: string): void
+      +resolve(note: string): void
     }
 
     BaseEntity <|-- User
     BaseEntity <|-- Account
     BaseEntity <|-- Transaction
-    BaseEntity <|-- RiskProfile
+    BaseEntity <|-- RiskAssessment
     BaseEntity <|-- Alert
 
     class BaseController {
-      +ok(data)
-      +created(data)
-      +handleError(error)
-    }
-
-    class TransactionController {
-      +createTransaction(dto)
-      +getTransaction(id)
+      +ok~T~(data: T): ApiResponse~T~
+      +created~T~(data: T): ApiResponse~T~
+      +handleError(error: Error): never
     }
 
     class AuthController {
-      +login(dto)
-      +refresh(dto)
+      +login(dto: LoginDto): Promise~AuthResponseDto~
+      +refresh(dto: RefreshTokenDto): Promise~AuthResponseDto~
     }
 
-    BaseController <|-- TransactionController
+    class TransactionController {
+      +createTransaction(dto: CreateTransactionDto): Promise~TransactionResponseDto~
+      +getTransaction(transactionId: string): Promise~TransactionResponseDto~
+    }
+
     BaseController <|-- AuthController
+    BaseController <|-- TransactionController
+
+    class LoginDto {
+      +email: string
+      +password: string
+    }
+
+    class CreateTransactionDto {
+      +accountId: string
+      +amount: number
+      +currency: Currency
+      +merchantName: string
+      +idempotencyKey: string
+    }
+
+    class TransactionResponseDto {
+      +transactionId: string
+      +status: TransactionStatus
+      +decision: RiskDecision
+      +riskScore: number
+      +correlationId: string
+    }
+
+    class IAuthService {
+      <<interface>>
+      +login(dto: LoginDto): Promise~AuthResponseDto~
+      +refresh(token: string): Promise~AuthResponseDto~
+    }
+
+    class ITransactionService {
+      <<interface>>
+      +createTransaction(dto: CreateTransactionDto, userId: string): Promise~TransactionResponseDto~
+    }
+
+    class IFraudDetectionService {
+      <<interface>>
+      +runDetection(context: TransactionContext): Promise~FraudSignalSet~
+    }
+
+    class IRiskModelStrategy {
+      <<interface>>
+      +score(input: RiskInput): Promise~RiskScoreResult~
+    }
+
+    class INotificationChannel {
+      <<interface>>
+      +send(message: NotificationMessage): Promise~void~
+    }
+
+    class IUserRepository {
+      <<interface>>
+      +findById(id: string): Promise~User|null~
+      +findByEmail(email: string): Promise~User|null~
+      +save(user: User): Promise~User~
+    }
+
+    class IAccountRepository {
+      <<interface>>
+      +findById(id: string): Promise~Account|null~
+      +save(account: Account): Promise~Account~
+    }
+
+    class ITransactionRepository {
+      <<interface>>
+      +findById(id: string): Promise~Transaction|null~
+      +save(tx: Transaction): Promise~Transaction~
+    }
 
     class TransactionService {
-      +createTransaction(command)
-      +evaluateAndPersist()
+      +createTransaction(dto: CreateTransactionDto, userId: string): Promise~TransactionResponseDto~
+      +evaluateAndPersist(context: TransactionContext): Promise~Transaction~
     }
 
     class FraudDetectionService {
-      +runDetection(context)
+      +runDetection(context: TransactionContext): Promise~FraudSignalSet~
     }
 
     class RiskScoringService {
-      +calculateRiskScore(signals, context)
-    }
-
-    class BehavioralAnalysisService {
-      +extractFeatures(context)
-    }
-
-    class AlertService {
-      +createAlert(decisionEvent)
-      +updateAlertStatus()
-    }
-
-    class AuthService {
-      +authenticate(credentials)
-      +authorize(principal, permission)
-    }
-
-    class AuditService {
-      +record(event)
+      +calculateRiskScore(input: RiskInput): Promise~RiskScoreResult~
     }
 
     class RiskModelFactory {
-      +getStrategy(context) RiskModelStrategy
-    }
-
-    class RiskModelStrategy {
-      <<interface>>
-      +score(context, features)
+      +getStrategy(context: TransactionContext): IRiskModelStrategy
     }
 
     class RuleOnlyStrategy {
-      +score(context, features)
+      +score(input: RiskInput): Promise~RiskScoreResult~
     }
 
-    class HybridAIStrategy {
-      +score(context, features)
+    class HybridAiStrategy {
+      +score(input: RiskInput): Promise~RiskScoreResult~
     }
 
     class HighValueTxStrategy {
-      +score(context, features)
+      +score(input: RiskInput): Promise~RiskScoreResult~
     }
 
-    RiskModelStrategy <|.. RuleOnlyStrategy
-    RiskModelStrategy <|.. HybridAIStrategy
-    RiskModelStrategy <|.. HighValueTxStrategy
-
-    class NotificationChannel {
-      <<interface>>
-      +send(message)
+    class AlertService {
+      +createAlert(event: TransactionDecidedEvent): Promise~Alert~
+      +updateAlertStatus(alertId: string, status: AlertStatus): Promise~Alert~
     }
 
-    class EmailNotifier {
-      +send(message)
-    }
+    class PrismaUserRepository
+    class PrismaAccountRepository
+    class PrismaTransactionRepository
+    class PrismaAlertRepository
 
-    class SmsNotifier {
-      +send(message)
-    }
+    class EmailNotifier
+    class SmsNotifier
+    class InAppNotifier
 
-    class InAppNotifier {
-      +send(message)
-    }
-
-    NotificationChannel <|.. EmailNotifier
-    NotificationChannel <|.. SmsNotifier
-    NotificationChannel <|.. InAppNotifier
-
-    class UserRepository {
-      <<interface>>
-      +findById(id)
-      +findByEmail(email)
-      +save(user)
-    }
-
-    class AccountRepository {
-      <<interface>>
-      +findById(id)
-      +save(account)
-    }
-
-    class TransactionRepository {
-      <<interface>>
-      +findById(id)
-      +save(tx)
-    }
-
-    class AlertRepository {
-      <<interface>>
-      +findById(id)
-      +save(alert)
-    }
-
-    class PostgresUserRepository
-    class PostgresAccountRepository
-    class PostgresTransactionRepository
-    class PostgresAlertRepository
-
-    UserRepository <|.. PostgresUserRepository
-    AccountRepository <|.. PostgresAccountRepository
-    TransactionRepository <|.. PostgresTransactionRepository
-    AlertRepository <|.. PostgresAlertRepository
-
-    class ConfigManager {
+    class ConfigService {
       <<singleton>>
-      +getInstance()
-      +get(key)
+      +get(key: string): string
     }
 
-    TransactionController --> TransactionService
-    AuthController --> AuthService
+    AuthController --> IAuthService
+    TransactionController --> ITransactionService
 
-    TransactionService --> AccountRepository
-    TransactionService --> TransactionRepository
-    TransactionService --> FraudDetectionService
+    TransactionController --> CreateTransactionDto
+    AuthController --> LoginDto
+    TransactionController --> TransactionResponseDto
+
+    ITransactionService <|.. TransactionService
+    IFraudDetectionService <|.. FraudDetectionService
+
+    IUserRepository <|.. PrismaUserRepository
+    IAccountRepository <|.. PrismaAccountRepository
+    ITransactionRepository <|.. PrismaTransactionRepository
+
+    IRiskModelStrategy <|.. RuleOnlyStrategy
+    IRiskModelStrategy <|.. HybridAiStrategy
+    IRiskModelStrategy <|.. HighValueTxStrategy
+
+    INotificationChannel <|.. EmailNotifier
+    INotificationChannel <|.. SmsNotifier
+    INotificationChannel <|.. InAppNotifier
+
+    TransactionService --> IAccountRepository
+    TransactionService --> ITransactionRepository
+    TransactionService --> IFraudDetectionService
     TransactionService --> RiskScoringService
-    TransactionService --> AuditService
 
-    FraudDetectionService --> BehavioralAnalysisService
     FraudDetectionService --> RiskModelFactory
+    RiskScoringService --> IRiskModelStrategy
 
-    RiskScoringService --> RiskModelStrategy
-
-    AlertService --> AlertRepository
-    AlertService --> NotificationChannel
-    AlertService --> AuditService
+    AlertService --> PrismaAlertRepository
+    AlertService --> INotificationChannel
 
     User "1" o-- "1..*" Account : owns
     Account "1" o-- "0..*" Transaction : records
     Transaction "1" --> "0..1" Alert : triggers
-    User "1" --> "1" RiskProfile : has
 ```
+
+## NestJS Binding Example
+- `providers: [{ provide: 'ITransactionRepository', useClass: PrismaTransactionRepository }]`
+- `providers: [{ provide: 'IRiskModelStrategy', useClass: HybridAiStrategy }]`
