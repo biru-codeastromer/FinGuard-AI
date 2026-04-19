@@ -1,0 +1,11 @@
+import { Module } from '@nestjs/common';
+import { RulesController } from './rules.controller';
+import { RulesService } from './rules.service';
+import { RulesRepository } from './repositories/rules.repository';
+
+@Module({
+  controllers: [RulesController],
+  providers: [RulesService, RulesRepository],
+  exports: [RulesService, RulesRepository],
+})
+export class RulesModule {}
