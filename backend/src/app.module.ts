@@ -9,6 +9,7 @@ import { AlertsModule } from './modules/alerts/alerts.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
+import { HealthModule } from './modules/health/health.module';
 import { RulesModule } from './modules/rules/rules.module';
 import { RiskModule } from './modules/risk/risk.module';
 import { TransactionsModule } from './modules/transactions/transactions.module';
@@ -28,6 +29,7 @@ import { UsersModule } from './modules/users/users.module';
     AlertsModule,
     AuditModule,
     DashboardModule,
+    HealthModule,
     RulesModule,
   ],
   providers: [

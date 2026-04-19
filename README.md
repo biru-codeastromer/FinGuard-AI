@@ -114,6 +114,57 @@ The repository build has been verified with:
 npm run build
 ```
 
+## Free Deployment
+
+Recommended free setup:
+
+- Frontend: Vercel
+- Backend API: Render Web Service
+- Database: Render Postgres
+
+### Render backend and database
+
+This repository includes a ready-to-use [render.yaml](render.yaml) blueprint for the backend API and a free Postgres database.
+
+What the blueprint already does:
+
+- creates a free `finguard-db` Postgres instance
+- creates a free `finguard-api` web service from `backend/`
+- runs `prisma db push`
+- seeds the demo data automatically on deploy
+- generates JWT secrets automatically
+- exposes a health endpoint at `/api/v1/health`
+
+The only value you must provide in Render is:
+
+- `FRONTEND_URL` = your Vercel frontend domain
+
+### Vercel frontend
+
+The frontend includes [frontend/vercel.json](frontend/vercel.json) so React Router deep links like `/workspace` work correctly on Vercel.
+
+In Vercel:
+
+1. Import this GitHub repository.
+2. Set the Root Directory to `frontend`.
+3. Set `VITE_API_URL` to your Render backend URL with `/api/v1` appended.
+
+Example:
+
+```bash
+VITE_API_URL=https://your-render-service.onrender.com/api/v1
+```
+
+### Deployment order
+
+1. Create the Render Blueprint from `render.yaml`
+2. Copy the Render backend URL
+3. Create the Vercel project from `frontend/`
+4. Put the Render URL into `VITE_API_URL`
+5. Copy the Vercel URL
+6. Put the Vercel URL into Render `FRONTEND_URL`
+7. Redeploy the Render service once
+
 ## Notes
 
 - A root `.gitignore` is included to keep `.env` files, `node_modules`, build output, and other local artifacts out of GitHub.
