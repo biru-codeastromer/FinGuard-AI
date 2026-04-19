@@ -1,0 +1,36 @@
+{
+  "name": "finguard-ai",
+  "version": "1.0.0",
+  "description": "FinGuard AI is a backend-focused full stack fintech project for financial risk analysis and fraud detection.",
+  "scripts": {
+    "dev": "npm-run-all --parallel dev:backend dev:frontend",
+    "dev:backend": "npm --workspace backend run start:dev",
+    "dev:frontend": "npm --workspace frontend run dev",
+    "build": "npm-run-all build:backend build:frontend",
+    "build:backend": "npm --workspace backend run build",
+    "build:frontend": "npm --workspace frontend run build",
+    "seed": "npm --workspace backend run prisma:seed",
+    "lint": "npm-run-all lint:backend lint:frontend",
+    "lint:backend": "npm --workspace backend run lint",
+    "lint:frontend": "npm --workspace frontend run lint"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/biru-codeastromer/FinGuard-AI.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/biru-codeastromer/FinGuard-AI/issues"
+  },
+  "homepage": "https://github.com/biru-codeastromer/FinGuard-AI#readme",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
+  "devDependencies": {
+    "npm-run-all": "^4.1.5"
+  }
+}

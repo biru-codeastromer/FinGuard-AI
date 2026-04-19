@@ -1,0 +1,37 @@
+# dependencies
+node_modules/
+
+# builds
+dist/
+coverage/
+.turbo/
+
+# environment
+.env
+.env.*
+!.env.example
+backend/.env
+backend/.env.*
+!backend/.env.example
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
+
+# logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# editor / os
+.DS_Store
+.idea/
+.vscode/
+
+# generated / local state
+backend/generated/
+backend/prisma/dev.db
+backend/prisma/dev.db-journal
+frontend/.vite/
+
