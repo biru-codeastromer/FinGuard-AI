@@ -4,6 +4,21 @@ import { Link } from 'react-router-dom';
 import { HeroScene } from '../components/HeroScene';
 import { SiteHeader } from '../components/SiteHeader';
 
+const projectDocs = [
+  { file: 'idea.md', note: 'project scope and key features' },
+  { file: 'useCaseDiagram.md', note: 'use case coverage' },
+  { file: 'sequenceDiagram.md', note: 'main end-to-end flow' },
+  { file: 'classDiagram.md', note: 'major classes and relationships' },
+  { file: 'ErDiagram.md', note: 'database tables and relationships' },
+];
+
+const projectHighlights = [
+  'Repository pattern',
+  'Strategy-based risk scoring',
+  'JWT auth + RBAC',
+  'Alerts + audit logging',
+];
+
 const signals = [
   {
     label: 'Velocity spikes',
@@ -353,22 +368,25 @@ export function HomePage() {
 
           <div>
             <h4>Project</h4>
-            <div className="footer-links">
-              <span>`idea.md` included in repo</span>
-              <span>`useCaseDiagram.md` included in repo</span>
-              <span>`sequenceDiagram.md` included in repo</span>
-              <span>`ErDiagram.md` included in repo</span>
-            </div>
+            <ul className="footer-links">
+              {projectDocs.map((doc) => (
+                <li key={doc.file}>
+                  <code>{doc.file}</code>
+                  <span>{doc.note}</span>
+                </li>
+              ))}
+            </ul>
           </div>
 
           <div>
             <h4>Highlights</h4>
-            <div className="footer-links">
-              <span>Repository pattern</span>
-              <span>Strategy-based risk scoring</span>
-              <span>JWT auth + RBAC</span>
-              <span>Alerts + audit logging</span>
-            </div>
+            <ul className="footer-links">
+              {projectHighlights.map((item) => (
+                <li key={item}>
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
       </footer>

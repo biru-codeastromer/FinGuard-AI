@@ -504,6 +504,28 @@ button {
 .footer-links {
   display: grid;
   gap: 0.6rem;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.footer-links li {
+  display: flex;
+  align-items: baseline;
+  gap: 0.7rem;
+  flex-wrap: wrap;
+  color: var(--muted);
+}
+
+.footer-links code {
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  background: var(--surface-soft);
+  border: 1px solid rgba(41, 49, 77, 0.08);
+  color: var(--text);
+  font-family: 'Manrope', sans-serif;
+  font-size: 0.88rem;
+  font-weight: 700;
 }
 
 .workspace-shell {
